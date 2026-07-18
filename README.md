@@ -2,12 +2,78 @@
 
 **English** | [中文](./README.zh-CN.md)
 
-**Scope: Chinese ↔ English only.** Other languages are not supported.
+<p align="center">
+  <img src="./public/icon-128.png" width="96" height="96" alt="Lingua Bridge"/>
+</p>
 
-A Chrome / Firefox extension for page translation and **video simultaneous interpretation** — selection bubbles, bilingual captions, and optional voice playback. No more copy-paste into external tools.
+**Lingua Bridge** is a Chrome / Firefox browser extension for **Chinese ↔ English only**.  
+It turns everyday browsing and video watching into a seamless bilingual experience: select text for an instant bubble, translate a full page when you need it, or run **video simultaneous interpretation** with draggable captions and optional voice playback.
 
-- **UI i18n**: popup, options, and selection bubble follow the browser/OS language (`_locales`: en / zh_CN / zh_TW).
-- **API Key optional**: basic page translation works without a key; provider keys make video SI more reliable.
+No copy-paste into external tools. No other language pairs — the product is intentionally focused on ZH↔EN so recognition, translation, and TTS stay reliable.
+
+| | |
+|---|---|
+| **Platforms** | Chrome, Edge, Firefox (MV3 / Firefox pack) |
+| **Core** | Selection bubble · full-page translate · video SI |
+| **SI styles** | Silent captions · Voice interpretation |
+| **Providers** | OpenAI-compatible, DeepSeek, iFlytek, OpenRouter, Anthropic, Custom |
+| **Key** | Optional — free path works; keys unlock stronger AI / video-track SI |
+| **UI language** | Follows browser/OS locale (`en` / `zh_CN` / `zh_TW`) |
+| **Version** | **v0.4.29** |
+
+---
+
+## What it does
+
+### 1. Selection bubble (default)
+
+Turn on the master switch, select Chinese or English on any normal webpage, and a bubble appears beside the selection: **Translate**, **Full page**, plus short term notes when available.
+
+<p align="center">
+  <img src="./docs/images/selection-bubble.png" width="640" alt="Selection bubble translating English to Chinese"/>
+</p>
+
+### 2. Popup control center
+
+The toolbar popup is the control surface: master switch, **live status** (provider, SI style, whether SI is on for this page, video detection), and SI output mode.
+
+<p align="center">
+  <img src="./docs/images/popup.png" width="360" alt="Lingua Bridge popup with live status and SI controls"/>
+</p>
+
+### 3. Video simultaneous interpretation
+
+On a page with a playable video, start SI after choosing a style:
+
+- **Silent captions** — bilingual overlay (draggable, history, fold/close)
+- **Voice interpretation** — speak the translation while still showing captions
+
+Closing the caption panel stops SI and keeps the popup button / live status in sync.
+
+<p align="center">
+  <img src="./docs/images/si-caption.png" width="720" alt="Video SI floating bilingual captions"/>
+</p>
+
+### 4. Settings & local security
+
+Pick a provider, optionally enter credentials, and enable a **session vault** (PBKDF2 + AES-GCM) so secrets stay encrypted on device. Keys never leave your machine for a Lingua Bridge server — there is no project backend.
+
+<p align="center">
+  <img src="./docs/images/options.png" width="640" alt="Settings: providers, credentials, security hardening"/>
+</p>
+
+---
+
+## Feature matrix
+
+| Capability | Without API Key | With API Key |
+|------------|-----------------|--------------|
+| Selection translate / explain | Free engine + brief notes | AI translation + term notes |
+| Full-page translate | Optional | Optional |
+| Video SI | Mic Web Speech (fallback) | Video-track STT + TTS |
+| Encrypted vault for secrets | — | Optional |
+
+---
 
 ## One-command pack (Windows / Linux / macOS)
 
@@ -24,6 +90,12 @@ make pack
 ```
 
 Skip tests for a faster pack: `npm run pack:all -- --skip-test` or `./pack.sh --skip-test`
+
+Regenerate README screenshots (optional):
+
+```bash
+node scripts/capture-readme-shots.mjs
+```
 
 ## Install in the browser
 
@@ -45,8 +117,6 @@ Output: `.output/` (`chrome-mv3/`, `firefox-mv2/`, and `*-chrome.zip` / `*-firef
    - **Recommended**: **Load unpacked** → select `.output/chrome-mv3`
    - Or drag `.output/omnidev-lingua-bridge-*-chrome.zip` onto the extensions page (environment-dependent)
 
-The extension then appears in the toolbar like any other (icon, popup, options).
-
 ### Firefox
 
 1. Open `about:debugging#/runtime/this-firefox`
@@ -67,19 +137,10 @@ Temporary add-ons may unload after restart; long-term install usually requires [
 
 1. Open the popup and turn on the **master switch** (default: selection bubble; no full-page auto-translate)
 2. **Select text** → bubble: **Translate** (with term notes) / **Full page**
-3. For video SI: choose **Silent captions** or **Voice interpretation**, then start SI on the page
-4. (Optional) Configure an API Key for stronger explain + video-track SI
+3. For video SI: choose **Silent captions** or **Voice interpretation**, then **Start SI** on a video page
+4. (Optional) Configure an API Key in settings for stronger explain + video-track SI
 
-### Feature matrix
-
-| Capability | Without API Key | With API Key |
-|------------|-----------------|--------------|
-| Selection translate / explain | Free engine + brief notes | AI translation + term notes |
-| Full-page translate | Optional | Optional |
-| Video SI | Mic Web Speech (fallback) | Video-track STT + TTS |
-| Encrypted vault for secrets | — | Optional |
-
-Toasts fade after ~4s (or dismiss with ×). The free path may send text to a public translation instance — use your own key on sensitive pages.
+Switching SI style while SI is running turns voice playback on/off immediately. Closing the caption float stops SI and updates the popup.
 
 ## API Key security
 
