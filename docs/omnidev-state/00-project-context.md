@@ -1,4 +1,4 @@
-# Project Context — omnidev-lingua-bridge
+# Project Context — omnipilot-lingua-bridge
 
 ```yaml
 project_type: greenfield

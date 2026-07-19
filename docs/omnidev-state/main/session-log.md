@@ -24,7 +24,7 @@ Phase 4 QA 完成（Security re-audit #3 / 0.4.19）。
 ## Phase 4
 - Profile frontend-only-M · UNIT/INT/SMK/REG all PASS (85 tests)
 - Report: `05-test-report.md`
-- Pack: `.output/omnidev-lingua-bridge-0.4.19-chrome.zip`
+- Pack: `.output/omnipilot-lingua-bridge-0.4.19-chrome.zip`
 
 ## 恢复指引
 `/od n` → Phase 5 Deploy；或 `/od sk 5` 跳过部署后收工。

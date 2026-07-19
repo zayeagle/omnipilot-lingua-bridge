@@ -27,7 +27,7 @@ Blocking: UNIT + SMK
 ## Summary
 - Tests: **85 passed** (25 files)
 - Gates: UNIT ✅ · INT ✅ · SMK ✅ · REG ✅
-- Pack: `.output/omnidev-lingua-bridge-0.4.19-chrome.zip`
+- Pack: `.output/omnipilot-lingua-bridge-0.4.19-chrome.zip`
 - Manual residual: options unlock → provider translate (browser install)
 
 ## Gaps

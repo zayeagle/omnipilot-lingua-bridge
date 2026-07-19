@@ -115,7 +115,7 @@ Output: `.output/` (`chrome-mv3/`, `firefox-mv2/`, and `*-chrome.zip` / `*-firef
 3. Enable **Developer mode**
 4. Install either:
    - **Recommended**: **Load unpacked** → select `.output/chrome-mv3`
-   - Or drag `.output/omnidev-lingua-bridge-*-chrome.zip` onto the extensions page (environment-dependent)
+   - Or drag `.output/omnipilot-lingua-bridge-*-chrome.zip` onto the extensions page (environment-dependent)
 
 ### Firefox
 

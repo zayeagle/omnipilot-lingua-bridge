@@ -116,7 +116,7 @@ npm run pack:all
 3. 打开右上角 **开发者模式**
 4. 任选其一安装：
    - **推荐**：点 **加载已解压的扩展程序** → 选择目录 `.output/chrome-mv3`
-   - 或将 `.output/omnidev-lingua-bridge-*-chrome.zip` 拖到扩展页（视环境而定）
+   - 或将 `.output/omnipilot-lingua-bridge-*-chrome.zip` 拖到扩展页（视环境而定）
 
 ### Firefox
 

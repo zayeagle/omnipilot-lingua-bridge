@@ -13,4 +13,4 @@
 ✅ T74 · UNIT 83 pass + zip 0.4.19 · 14:31
 
 ## Status
-- Phase 3 complete; pack `.output/omnidev-lingua-bridge-0.4.19-chrome.zip`
+- Phase 3 complete; pack `.output/omnipilot-lingua-bridge-0.4.19-chrome.zip`

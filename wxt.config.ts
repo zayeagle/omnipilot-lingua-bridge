@@ -26,7 +26,7 @@ export default defineConfig({
     },
     browser_specific_settings: {
       gecko: {
-        id: 'lingua-bridge@omnidev.local',
+        id: 'lingua-bridge@omnipilot.local',
         strict_min_version: '109.0',
       },
     },
