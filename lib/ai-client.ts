@@ -84,6 +84,311 @@ function authHeaders(config: AiConfig): HeadersInit {
   };
 }
 
+type ChatMessage = {
+  content?: unknown;
+  text?: unknown;
+  reasoning_content?: unknown;
+};
+
+type ChatCompletionBody = {
+  choices?: Array<{
+    message?: ChatMessage;
+    delta?: ChatMessage;
+    text?: unknown;
+  }>;
+  message?: ChatMessage;
+  content?: unknown;
+  text?: unknown;
+  data?: ChatCompletionBody;
+};
+
+function tryParseJson(s: string): unknown {
+  try {
+    return JSON.parse(s);
+  } catch {
+    return null;
+  }
+}
+
+/** Coerce + unwrap nested/custom chat.completion payloads. */
+function asCompletionBody(value: unknown, depth = 0): ChatCompletionBody | null {
+  if (value == null || depth > 4) return null;
+  if (typeof value === 'string') {
+    const inner = tryParseJson(value.trim());
+    return inner != null ? asCompletionBody(inner, depth + 1) : null;
+  }
+  if (typeof value !== 'object') return null;
+  if (Array.isArray(value)) {
+    return value.length ? asCompletionBody(value[0], depth + 1) : null;
+  }
+  const obj = value as Record<string, unknown>;
+
+  // Nested wrappers used by many CN gateways.
+  for (const key of ['data', 'result', 'output', 'response', 'body']) {
+    if (key in obj && obj[key] != null) {
+      const nested = asCompletionBody(obj[key], depth + 1);
+      if (
+        nested &&
+        (nested.choices || nested.message || nested.content || nested.text)
+      ) {
+        return nested;
+      }
+    }
+  }
+
+  return obj as ChatCompletionBody;
+}
+
+/** Strip BOM / fences; parse JSON object or OpenAI-compat SSE (`data: {...}`). */
+export function parseChatCompletionBody(bodyText: unknown): ChatCompletionBody {
+  // Guard: never call .replace on a non-string (would throw oddly).
+  let raw =
+    typeof bodyText === 'string'
+      ? bodyText
+      : bodyText == null
+        ? ''
+        : (() => {
+            try {
+              return JSON.stringify(bodyText);
+            } catch {
+              return String(bodyText);
+            }
+          })();
+  raw = raw.replace(/^\uFEFF/, '').trim();
+  if (!raw) {
+    throw new AiClientError('AI 返回为空');
+  }
+
+  const direct = asCompletionBody(tryParseJson(raw));
+  if (direct) return direct;
+
+  // Custom gateways often stream even when client omitted stream:false.
+  if (raw.includes('data:')) {
+    const chunks: ChatCompletionBody[] = [];
+    // Split on newlines OR bare `data:` (some proxies omit newlines).
+    const parts = raw.includes('\n')
+      ? raw.split(/\r?\n/)
+      : raw.split(/(?=data:)/);
+    for (const line of parts) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('data:')) continue;
+      const payload = trimmed.slice(5).trim();
+      if (!payload || payload === '[DONE]') continue;
+      const obj = asCompletionBody(tryParseJson(payload));
+      if (obj) chunks.push(obj);
+    }
+    if (chunks.length) {
+      return mergeSseChunks(chunks);
+    }
+  }
+
+  // NDJSON: one JSON object per line (no data: prefix).
+  if (raw.includes('\n') && raw.includes('{')) {
+    const chunks: ChatCompletionBody[] = [];
+    for (const line of raw.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('{')) continue;
+      const obj = asCompletionBody(tryParseJson(trimmed));
+      if (obj?.choices || obj?.message) chunks.push(obj);
+    }
+    if (chunks.length) return mergeSseChunks(chunks);
+  }
+
+  const objectMatch = raw.match(/\{[\s\S]*\}/);
+  if (objectMatch) {
+    const embedded = asCompletionBody(tryParseJson(objectMatch[0]));
+    if (embedded) return embedded;
+  }
+
+  // Array wrapper: [{choices:...}] or ["..."]
+  const arrayMatch = raw.match(/\[[\s\S]*\]/);
+  if (arrayMatch) {
+    const arr = tryParseJson(arrayMatch[0]);
+    if (Array.isArray(arr) && arr.length) {
+      const first = asCompletionBody(arr[0]);
+      if (first) return first;
+    }
+  }
+
+  throw new AiClientError(unparseableHint(raw));
+}
+
+function mergeSseChunks(chunks: ChatCompletionBody[]): ChatCompletionBody {
+  let content = '';
+  let reasoning = '';
+  let text = '';
+  for (const chunk of chunks) {
+    const msg = chunk.choices?.[0]?.delta ?? chunk.choices?.[0]?.message;
+    content += extractTextField(msg?.content);
+    reasoning += extractTextField(msg?.reasoning_content);
+    text += extractTextField(msg?.text ?? chunk.choices?.[0]?.text);
+  }
+  if (content || reasoning || text) {
+    return {
+      choices: [
+        {
+          message: {
+            content: content || undefined,
+            reasoning_content: reasoning || undefined,
+            text: text || undefined,
+          },
+        },
+      ],
+    };
+  }
+  return chunks[chunks.length - 1]!;
+}
+
+function extractTextField(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) {
+    return value
+      .map((part) => {
+        if (typeof part === 'string') return part;
+        if (part && typeof part === 'object') {
+          const p = part as { text?: unknown; content?: unknown };
+          if (typeof p.text === 'string') return p.text;
+          if (typeof p.content === 'string') return p.content;
+          // Some gateways put structured JSON in a content-part object.
+          if ('translation' in p || 'terms' in p) {
+            try {
+              return JSON.stringify(p);
+            } catch {
+              return '';
+            }
+          }
+        }
+        return '';
+      })
+      .join('');
+  }
+  // Custom models sometimes return message.content as a JSON object, not a string.
+  if (value && typeof value === 'object') {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return '';
+    }
+  }
+  return '';
+}
+
+/** Prefer message.content; fall back to content parts / text / reasoning_content. */
+export function extractAssistantText(parsed: ChatCompletionBody): string {
+  const choice = parsed.choices?.[0];
+  const msg = choice?.message ?? choice?.delta ?? parsed.message;
+  const candidates = [
+    extractTextField(msg?.content),
+    extractTextField(msg?.text),
+    extractTextField(choice?.text),
+    extractTextField(parsed.content),
+    extractTextField(parsed.text),
+    extractTextField(msg?.reasoning_content),
+  ];
+  for (const c of candidates) {
+    const t = c.trim();
+    if (t) return t;
+  }
+  return '';
+}
+
+function stripMarkdownFences(text: string): string {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  return (fenced?.[1] ?? text).trim();
+}
+
+/** Resolve explain JSON text from chat body or raw HTTP body (custom gateways). */
+export function resolveExplainContent(
+  bodyText: string,
+  parsed: ChatCompletionBody,
+): string {
+  const fromAssistant = stripMarkdownFences(extractAssistantText(parsed));
+  if (fromAssistant && parseExplainPayload(fromAssistant)) {
+    return fromAssistant;
+  }
+  if (fromAssistant) {
+    // Still return — caller may re-parse / report better errors.
+    const maybe = stripMarkdownFences(fromAssistant);
+    if (maybe) return maybe;
+  }
+
+  const raw = stripMarkdownFences(bodyText.replace(/^\uFEFF/, '').trim());
+  if (raw && parseExplainPayload(raw)) return raw;
+
+  const root = parsed as ChatCompletionBody & Record<string, unknown>;
+  for (const key of ['result', 'output', 'response', 'data']) {
+    const v = root[key];
+    if (typeof v === 'string') {
+      const s = stripMarkdownFences(v);
+      if (s && parseExplainPayload(s)) return s;
+    } else if (v && typeof v === 'object') {
+      try {
+        const s = JSON.stringify(v);
+        if (parseExplainPayload(s)) return s;
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+  return fromAssistant;
+}
+
+function unparseableHint(bodyText: string): string {
+  const snip = bodyText
+    .replace(/sk-[a-zA-Z0-9_-]+/g, '[REDACTED]')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 72);
+  if (!snip) return 'AI 返回无法解析';
+  if (/^</.test(snip) || /<html/i.test(snip)) {
+    return 'AI 返回无法解析（像是网页/HTML，请检查 Base URL）';
+  }
+  if (snip === '[object Object]') {
+    return 'AI 返回无法解析（响应被错误转成对象字符串，请检查网关）';
+  }
+  return `AI 返回无法解析（开头: ${snip}）`;
+}
+
+/** Pull N translation strings from model content (array / object / plain text). */
+export function extractTranslationLines(
+  content: string,
+  expected: number,
+): string[] | null {
+  const text = stripMarkdownFences(content);
+  if (!text || expected <= 0) return null;
+
+  const tryArray = (value: unknown): string[] | null => {
+    if (!Array.isArray(value) || value.length !== expected) return null;
+    return value.map((v) => String(v ?? ''));
+  };
+
+  const bracket = text.match(/\[[\s\S]*\]/);
+  if (bracket) {
+    const parsed = tryParseJson(bracket[0]);
+    const lines = tryArray(parsed);
+    if (lines) return lines;
+  }
+
+  const obj = tryParseJson(text);
+  if (obj && typeof obj === 'object') {
+    const rec = obj as Record<string, unknown>;
+    for (const key of ['translations', 'lines', 'result', 'data', 'output']) {
+      const lines = tryArray(rec[key]);
+      if (lines) return lines;
+    }
+    if (expected === 1 && typeof rec.translation === 'string') {
+      return [rec.translation];
+    }
+  }
+
+  // Single-line plain text (custom models often ignore JSON-array instruction).
+  if (expected === 1 && !text.startsWith('{') && !text.startsWith('[')) {
+    const plain = text.replace(/^["']|["']$/g, '').trim();
+    if (plain) return [plain];
+  }
+  return null;
+}
+
 export async function translateTexts(
   config: AiConfig,
   texts: string[],
@@ -103,6 +408,7 @@ export async function translateTexts(
   const payload = {
     model: config.chatModel,
     temperature: 0.2,
+    stream: false,
     messages: [
       {
         role: 'system',
@@ -140,27 +446,22 @@ export async function translateTexts(
       throw mapHttpError(res.status, sanitizeErrorMessage(bodyText, config.apiKey));
     }
 
-    let parsed: { choices?: Array<{ message?: { content?: string } }> };
+    let parsed: ChatCompletionBody;
     try {
-      parsed = JSON.parse(bodyText) as typeof parsed;
-    } catch {
-      throw new AiClientError('AI 返回无法解析');
+      parsed = parseChatCompletionBody(bodyText);
+    } catch (e) {
+      if (e instanceof AiClientError) throw e;
+      throw new AiClientError(unparseableHint(bodyText));
     }
 
-    const content = parsed.choices?.[0]?.message?.content?.trim() ?? '';
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
-      throw new AiClientError('AI 未返回译文数组');
-    }
-
-    let lines: unknown;
-    try {
-      lines = JSON.parse(jsonMatch[0]);
-    } catch {
-      throw new AiClientError('译文 JSON 无效');
-    }
-    if (!Array.isArray(lines) || lines.length !== nonEmpty.length) {
-      throw new AiClientError('译文条数不匹配');
+    const content = stripMarkdownFences(extractAssistantText(parsed));
+    const lines =
+      extractTranslationLines(content, nonEmpty.length) ??
+      extractTranslationLines(bodyText, nonEmpty.length);
+    if (!lines) {
+      throw new AiClientError(
+        content ? 'AI 未返回译文数组' : 'AI 未返回译文内容',
+      );
     }
 
     const out = texts.map(() => '');
@@ -187,6 +488,7 @@ export async function explainSelection(
   const payload = {
     model: config.chatModel,
     temperature: 0.2,
+    stream: false,
     messages: [
       {
         role: 'system',
@@ -224,15 +526,22 @@ export async function explainSelection(
     if (!res.ok) {
       throw mapHttpError(res.status, sanitizeErrorMessage(bodyText, config.apiKey));
     }
-    let parsed: { choices?: Array<{ message?: { content?: string } }> };
+    let parsed: ChatCompletionBody;
     try {
-      parsed = JSON.parse(bodyText) as typeof parsed;
-    } catch {
-      throw new AiClientError('AI 返回无法解析');
+      parsed = parseChatCompletionBody(bodyText);
+    } catch (e) {
+      if (e instanceof AiClientError) throw e;
+      throw new AiClientError(unparseableHint(bodyText));
     }
-    const content = parsed.choices?.[0]?.message?.content?.trim() ?? '';
+    const content = resolveExplainContent(bodyText, parsed);
     const result = parseExplainPayload(content);
-    if (!result) throw new AiClientError('AI 未返回讲解 JSON');
+    if (!result) {
+      throw new AiClientError(
+        content
+          ? 'AI 未返回讲解 JSON（需含 translation 字段）'
+          : 'AI 未返回讲解内容',
+      );
+    }
     return result;
   };
 

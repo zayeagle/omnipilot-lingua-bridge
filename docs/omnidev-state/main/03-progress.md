@@ -1,16 +1,12 @@
-# Progress — Security re-audit #3
+# Progress — direction · popup settings · iframe
 
-## Autopilot
-- 2026-07-18 · Phase 3 G33/G34 complete
+## Snapshot
+- Phase 3–5 complete (autopilot) · security PASS · pack done
 
 ## Tasks
-✅ T68 · lib/security-client.ts, options/main.ts · 14:30
-✅ T69 · options post-save unlockSession · 14:30
-✅ T70 · security-client.test.ts · 14:30
-✅ T71 · settings-store reason + background fail-closed · 14:30
-✅ T72 · messages.isExtensionPageSender id check · 14:30
-✅ T73 · ai-client/ai-handler multi-secret sanitize · 14:30
-✅ T74 · UNIT 83 pass + zip 0.4.19 · 14:31
-
-## Status
-- Phase 3 complete; pack `.output/omnipilot-lingua-bridge-0.4.19-chrome.zip`
+✅ T1 · storage/publicPrefs/settings-store directions · 2026-07-21
+✅ T2 · lib/lang-direction.ts + UNIT · 2026-07-21
+✅ T3 · content bubble/SI filter + popup checkboxes + i18n · 2026-07-21
+✅ T4 · popup settings panel (iframe, no openOptionsPage) · 2026-07-21
+✅ T5 · content allFrames:true · 2026-07-21
+✅ T6 · 105 tests PASS · pack chrome/firefox zip · 2026-07-21

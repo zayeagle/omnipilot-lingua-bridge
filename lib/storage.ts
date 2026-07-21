@@ -12,6 +12,14 @@ import {
   type IflytekSttProductId,
   type IflytekTtsProductId,
 } from './iflytek/products';
+import {
+  DEFAULT_LANG_DIRECTIONS,
+  normalizeLangDirections,
+  type LangDirectionPrefs,
+} from './lang-direction';
+
+export type { LangDirectionPrefs };
+export { DEFAULT_LANG_DIRECTIONS, normalizeLangDirections };
 
 export type SpeechMode = 'caption' | 'voice';
 
@@ -71,6 +79,9 @@ export interface ExtensionSettings {
   speechMode: SpeechMode;
   /** Default selection bubble; auto = viewport full-page translate. */
   pageMode: PageMode;
+  /** EN→ZH / ZH→EN switches (selection + SI). */
+  enToZh: boolean;
+  zhToEn: boolean;
   aiConfig: AiConfig;
   security: SecurityState;
 }
@@ -121,6 +132,8 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   enabled: false,
   speechMode: 'caption',
   pageMode: 'selection',
+  enToZh: DEFAULT_LANG_DIRECTIONS.enToZh,
+  zhToEn: DEFAULT_LANG_DIRECTIONS.zhToEn,
   aiConfig: { ...DEFAULT_AI_CONFIG },
   security: { ...DEFAULT_SECURITY },
 };
@@ -290,4 +303,15 @@ export function applyPageMode(
   mode: unknown,
 ): ExtensionSettings {
   return { ...settings, pageMode: normalizePageMode(mode) };
+}
+
+export function applyLangDirections(
+  settings: ExtensionSettings,
+  dirs: Partial<LangDirectionPrefs>,
+): ExtensionSettings {
+  const next = normalizeLangDirections({
+    enToZh: dirs.enToZh ?? settings.enToZh,
+    zhToEn: dirs.zhToEn ?? settings.zhToEn,
+  });
+  return { ...settings, enToZh: next.enToZh, zhToEn: next.zhToEn };
 }

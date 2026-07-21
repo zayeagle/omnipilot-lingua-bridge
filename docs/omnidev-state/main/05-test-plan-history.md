@@ -459,3 +459,29 @@ history_ref: 05-test-plan-history.md
 | TC-S-I02 | INT | ai.transcribe huge audioBase64 | rate or size error |
 | TC-S-R01 | REG | crypto-key + storage + route suites | pass |
 | TC-S-S01 | SMK | test + build + assert:content | pass |
+
+
+---
+archived_at: 2026-07-21T17:29:05+08:00
+from: 05-test-plan.md
+---
+
+---
+requirement_id: custom-model-parse-fix
+profile: frontend-only-S
+layers_required: [UNIT, SMK, REG]
+e2e_required: false
+---
+
+# Test Plan ‚Ä?custom model parse fix
+
+## Phase 4 Test Execution Plan
+Profile: frontend-only-S | UNIT ‚ú?SMK ‚ú?REG minimal | E2E ‚ù?(no UI / lib-only)
+Commands: `npm test`
+Blocking: UNIT
+
+| Layer | Scope |
+|-------|--------|
+| UNIT | `lib/ai-client.test.ts` + full vitest suite |
+| SMK | translate happy path + stream:false + SSE parse |
+| REG | full `npm test` (101) |

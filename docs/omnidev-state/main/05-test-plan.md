@@ -1,31 +1,25 @@
 ---
-version: 9
-artifact: 05-test-plan.md
-complexity: M
+requirement_id: direction-settings-iframe
 profile: frontend-only-M
-last_updated: 2026-07-18T14:32:00+08:00
-history_ref: 05-test-plan-history.md
+layers_required: [UNIT, SMK, REG]
+e2e_required: false
 ---
 
-# Test Plan — Security re-audit #3
+# Test Plan — direction · popup settings · iframe bubble
 
-| Layer | Required | Scope |
-|-------|----------|-------|
-| UNIT | yes | isExtensionPageSender requires runtime.id; sanitize multi-secret; resolve reason locked vs missing |
-| INT | yes | background: locked vault → no Libre; security.unlock wrong id denied |
-| E2E | no | manual SMK: options unlock → provider translate works after SW path |
-| SMK | yes | `npm test` + `npm run build` + `assert:content` + zip |
-| REG | yes | prior vault/messaging suites still green |
+| Layer | Scope | Blocking |
+|-------|--------|----------|
+| UNIT | `storage` prefs normalize; `isDirectionEnabled`; lang filter helpers | ✅ |
+| UNIT | content/helpers for direction gate (pure fn) | ✅ |
+| SMK | popup direction checkboxes persist; settings panel toggles without openOptionsPage | ✅ |
+| REG | full `npm test` | ✅ |
+| E2E | skip (no Playwright page for internal intranet) | — |
 
-## Cases (compact)
-
-| ID | Layer | Case | Expect | Result |
-|----|-------|------|--------|--------|
-| TC-S3-U01 | UNIT | sender id mismatch → not extension page | false | PASS |
-| TC-S3-U02 | UNIT | sanitize redacts iflytekApiSecret | [REDACTED] | PASS |
-| TC-S3-U03 | UNIT | resolve locked vault → reason locked | no free implied | PASS |
-| TC-S3-I01 | INT | background locked + ai.translate | error unlock; no Libre call | PASS |
-| TC-S3-I02 | INT | security.unlock sender.id wrong | denied | PASS |
-| TC-S3-R01 | REG | messages/storage/crypto suites | pass | PASS |
-| TC-S3-S01 | SMK | test + build + assert + pack | pass | PASS |
-
+## Cases
+| ID | Layer | Given | Expect |
+|----|-------|-------|--------|
+| TC-D-U01 | UNIT | enToZh only, source=en | allowed |
+| TC-D-U02 | UNIT | enToZh only, source=zh | blocked |
+| TC-D-U03 | UNIT | both false coerce → at least one true | ok |
+| TC-S-U01 | UNIT | publicPrefs includes direction flags | sync |
+| TC-F2-SMK | SMK | open settings in popup | no `openOptionsPage` call |

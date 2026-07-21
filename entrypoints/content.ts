@@ -28,6 +28,11 @@ import {
   updateSpeechSourceState,
   type SpeechSourceState,
 } from '../lib/lang-detect';
+import {
+  isSourceDirectionEnabled,
+  normalizeLangDirections,
+  type LangDirectionPrefs,
+} from '../lib/lang-direction';
 import type { IflytekPipeline, SpeechMode } from '../lib/storage';
 import { normalizeIflytekPipeline, normalizeSpeechMode } from '../lib/storage';
 import {
@@ -54,6 +59,8 @@ function pageScopeKey(): string {
 
 export default defineContentScript({
   matches: ['<all_urls>'],
+  /** Enterprise SPAs often host text in iframes — inject there too. */
+  allFrames: true,
   runAt: 'document_idle',
   main(ctx) {
     let enabled = false;
@@ -61,6 +68,7 @@ export default defineContentScript({
     let hasApiKey = false;
     let providerId = 'openai';
     let iflytekPipeline: IflytekPipeline = 'composed';
+    let langDirs: LangDirectionPrefs = normalizeLangDirections(null);
     let translating = false;
     let speechStop: (() => void) | null = null;
     let selectionBound = false;
@@ -192,6 +200,20 @@ export default defineContentScript({
                 });
               }
             }
+            const spoken =
+              speechSourceState.source ??
+              (cue.text ? detectLang(cue.text) : 'unknown');
+            if (
+              (spoken === 'zh' || spoken === 'en') &&
+              !isSourceDirectionEnabled(spoken, langDirs)
+            ) {
+              diagInfo('pipeline', '同传方向已关闭，跳过本段', {
+                source: spoken,
+                enToZh: langDirs.enToZh,
+                zhToEn: langDirs.zhToEn,
+              });
+              return;
+            }
             // Always show caption so SI is visible even when TTS fails / muted.
             if (cue.text || cue.translation) showCue(cue);
             const speakText = (cue.translation || cue.text || '').trim();
@@ -288,10 +310,19 @@ export default defineContentScript({
         shouldSpeak: () => speechMode === 'voice' && speechOnThisPage,
         listenLang,
         translate: async (text, targetLang) => {
+          const source = detectLang(text);
+          if (!isSourceDirectionEnabled(source, langDirs)) return text;
           const [t] = await requestTranslate([text], targetLang);
           return t ?? text;
         },
         onCaption: (cue) => {
+          const source = detectLang(cue.text || '');
+          if (
+            (source === 'zh' || source === 'en') &&
+            !isSourceDirectionEnabled(source, langDirs)
+          ) {
+            return;
+          }
           showCue(cue);
           const text = (cue.translation || cue.text || '').trim();
           if (!text) return;
@@ -438,6 +469,8 @@ export default defineContentScript({
       const text = getSelectedText();
       const rect = getSelectionRect();
       if (!text || !rect) return;
+      const sourceLang = detectLang(text);
+      if (!isSourceDirectionEnabled(sourceLang, langDirs)) return;
 
       showSelectionBubble(rect, text, {
         speechOnThisPage,
@@ -447,7 +480,11 @@ export default defineContentScript({
           return r.ok;
         },
         onTranslateSelection: async (selected) => {
-          const target = targetLangFor(detectLang(selected)) ?? 'zh';
+          const source = detectLang(selected);
+          if (!isSourceDirectionEnabled(source, langDirs)) {
+            throw new Error(t('toastDirectionDisabled'));
+          }
+          const target = targetLangFor(source) ?? 'zh';
           try {
             const result = await requestExplain(selected, target);
             setBubbleResult(result.translation, result.terms, selected);
@@ -512,6 +549,7 @@ export default defineContentScript({
       nextHasKey: boolean,
       nextProvider: string,
       nextPipeline: IflytekPipeline,
+      nextDirs: LangDirectionPrefs,
     ) => {
       const enableChanged = nextEnabled !== enabled;
       const speechChanged = nextSpeech !== speechMode;
@@ -524,6 +562,7 @@ export default defineContentScript({
       hasApiKey = nextHasKey;
       providerId = nextProvider || 'openai';
       iflytekPipeline = nextPipeline;
+      langDirs = normalizeLangDirections(nextDirs);
 
       if (!enabled) {
         speechOnThisPage = false;
@@ -561,6 +600,7 @@ export default defineContentScript({
         !!s.hasApiKey,
         s.providerId ?? 'openai',
         normalizeIflytekPipeline(s.iflytekPipeline),
+        normalizeLangDirections({ enToZh: s.enToZh, zhToEn: s.zhToEn }),
       ),
     );
 
@@ -571,6 +611,7 @@ export default defineContentScript({
         !!s?.hasApiKey,
         s?.providerId ?? 'openai',
         normalizeIflytekPipeline(s?.iflytekPipeline),
+        normalizeLangDirections({ enToZh: s?.enToZh, zhToEn: s?.zhToEn }),
       );
     });
 

@@ -1,25 +1,27 @@
 ---
-version: 9
-artifact: 02-plan.md
+requirement_id: direction-settings-iframe
 complexity: M
-last_updated: 2026-07-18T14:31:00+08:00
-history_ref: 02-plan-history.md
+groups: [G1, G2, G3]
 ---
 
-# Plan — Security re-audit #3
+# Plan — direction · popup settings · iframe bubble
 
-## Assumptions
-- Scope: High (SW-only unlock) + Medium fail-closed / sender.id / sanitize. No host_permissions redesign, no iFlytek query-auth rewrite, no Shadow DOM.
-- Prior F31/F32 vault+validators remain; this slice fixes residual wrong-world unlock.
-- Pack bump after green tests (0.4.19).
+## Group G1 — Direction prefs `[frontend]`
+| ID | Task | feature_ref | outputs |
+|----|------|-------------|---------|
+| T1 | Add `enToZh`/`zhToEn` to storage + publicPrefs + sync | F1 | `lib/storage.ts`, `lib/public-prefs.ts`, `lib/settings-store.ts` |
+| T2 | Pure helpers + UNIT | F1 | `lib/lang-direction.ts` (+test) |
+| T3 | Wire bubble + SI filters; popup checkboxes + i18n | F1 | `content.ts`, `popup/*`, locales |
 
-## G33 — SW session (F33)
-- [x] **T68** `lib/security-client.ts` + options unlock/status/lock via `security.*` only · F33
-- [x] **T69** After harden save, options calls `security.unlock` so SW key-session filled · F33
-- [x] **T70** UNIT/INT: status/unlock path does not rely on options-world key-session · F33
+## Group G2 — In-popup settings `[frontend]`
+| ID | Task | feature_ref | outputs |
+|----|------|-------------|---------|
+| T4 | Popup settings panel + iframe; remove openOptionsPage default | F2 | `popup/index.html`, `main.ts`, `style.css` |
 
-## G34 — Fail-closed + gates (F34)
-- [x] **T71** `resolveAiConfigForRequest` reason `locked`/`missing_key`; background skip Libre when locked · F34
-- [x] **T72** `isExtensionPageSender` requires `sender.id === runtime.id` · F34
-- [x] **T73** `sanitizeErrorMessage` multi-secret + wire iflytek · F34
-- [x] **T74** UNIT/INT TC-S3-* + REG/SMK + version pack · F34
+## Group G3 — Iframe bubble `[frontend]`
+| ID | Task | feature_ref | outputs |
+|----|------|-------------|---------|
+| T5 | `allFrames: true` + smoke note | F3 | `entrypoints/content.ts` |
+
+## Order
+G1 → G2 → G3 → UNIT → security audit → Phase 4

@@ -63,6 +63,8 @@ No DB / MQ / backend in scope (client-side extension; AI calls from extension or
 - Security harden 0.4.18: no rememberedPassphrase; vault JSON secrets; messaging validators + security gate; session unlock UX.
 - Security re-audit #3 (v0.4.18): no Critical; High = options unlock mutates options-world key-session (SW empty → Libre fallback); Medium = weak sender.id check, broad host_permissions, Base URL trust UI-only, Libre exfil on fallback, sanitize misses iflytekApiSecret; iFlytek query-auth still protocol-inherent.
 - Security fix 0.4.19: options unlock/status via security.* into SW key-session; resolve reason locked → no Libre; sender.id===runtime.id; sanitize multi-secret. Residual backlog: host_permissions, Base URL policy, iFlytek query-auth, Shadow DOM.
+- Custom OpenAI-compat (2026-07-20): `AI 返回无法解析` often SSE/default-stream; fix = `stream:false` + SSE merge + content-parts / reasoning_content / markdown fences.
+- 2026-07-21: direction toggles + in-popup settings + internal-page bubble — shipped: enToZh/zhToEn prefs, popup iframe settings, content allFrames.
 
 
 

@@ -18,11 +18,14 @@ import {
   normalizeSpeechMode,
   normalizePageMode,
   normalizeIflytekPipeline,
+  normalizeLangDirections,
+  applyLangDirections,
   hasStoredCredential,
   hasEncryptedKey,
   hasValidApiKey,
   isIflytekProvider,
   hasIflytekCredentials,
+  type LangDirectionPrefs,
 } from './storage';
 import {
   clearUnlockedApiKey,
@@ -51,10 +54,16 @@ function withoutRememberedPassphrase(security: SecurityState): SecurityState {
 }
 
 async function syncPublicPrefs(settings: ExtensionSettings): Promise<void> {
+  const dirs = normalizeLangDirections({
+    enToZh: settings.enToZh,
+    zhToEn: settings.zhToEn,
+  });
   await publicPrefsItem.setValue({
     enabled: settings.enabled,
     speechMode: normalizeSpeechMode(settings.speechMode),
     pageMode: normalizePageMode(settings.pageMode),
+    enToZh: dirs.enToZh,
+    zhToEn: dirs.zhToEn,
     hasApiKey: hasStoredCredential(settings),
     providerId: (settings.aiConfig.providerId ?? 'openai').trim() || 'openai',
     iflytekPipeline: normalizeIflytekPipeline(settings.aiConfig.iflytekPipeline),
@@ -73,10 +82,16 @@ async function persist(settings: ExtensionSettings): Promise<ExtensionSettings> 
 
 export async function getSettings(): Promise<ExtensionSettings> {
   const value = await settingsItem.getValue();
+  const dirs = normalizeLangDirections({
+    enToZh: value.enToZh,
+    zhToEn: value.zhToEn,
+  });
   return {
     enabled: value.enabled,
     speechMode: normalizeSpeechMode(value.speechMode),
     pageMode: normalizePageMode(value.pageMode),
+    enToZh: dirs.enToZh,
+    zhToEn: dirs.zhToEn,
     aiConfig: { ...DEFAULT_SETTINGS.aiConfig, ...value.aiConfig },
     security: withoutRememberedPassphrase({
       ...DEFAULT_SECURITY,
@@ -98,6 +113,8 @@ export async function ensurePublicPrefsSynced(): Promise<PublicPrefs> {
     enabled: settings.enabled,
     speechMode: settings.speechMode,
     pageMode: settings.pageMode,
+    enToZh: settings.enToZh,
+    zhToEn: settings.zhToEn,
     hasApiKey: hasStoredCredential(settings),
     providerId: (settings.aiConfig.providerId ?? 'openai').trim() || 'openai',
     iflytekPipeline: normalizeIflytekPipeline(settings.aiConfig.iflytekPipeline),
@@ -149,6 +166,8 @@ export async function saveAiConfig(
           enabled: false,
           speechMode: current.speechMode,
           pageMode: current.pageMode,
+          enToZh: current.enToZh,
+          zhToEn: current.zhToEn,
           aiConfig,
           security: withoutRememberedPassphrase(current.security),
         };
@@ -208,6 +227,8 @@ export async function saveAiConfig(
       enabled: false,
       speechMode: current.speechMode,
       pageMode: current.pageMode,
+      enToZh: current.enToZh,
+      zhToEn: current.zhToEn,
       aiConfig,
       security,
     };
@@ -256,6 +277,8 @@ export async function saveAiConfig(
     enabled: false,
     speechMode: current.speechMode,
     pageMode: current.pageMode,
+    enToZh: current.enToZh,
+    zhToEn: current.zhToEn,
     aiConfig,
     security: { ...DEFAULT_SECURITY },
   };
@@ -404,4 +427,11 @@ export async function setSpeechMode(mode: SpeechMode): Promise<ExtensionSettings
 export async function setPageMode(mode: PageMode): Promise<ExtensionSettings> {
   const current = await getSettings();
   return persist(applyPageMode(current, mode));
+}
+
+export async function setLangDirections(
+  dirs: Partial<LangDirectionPrefs>,
+): Promise<ExtensionSettings> {
+  const current = await getSettings();
+  return persist(applyLangDirections(current, dirs));
 }

@@ -60,8 +60,19 @@ function emit(
       : level === 'warn'
         ? console.warn
         : console.info;
-  if (payload !== undefined) fn(line, payload);
-  else fn(line);
+  // Single-arg log only — Chrome "Errors" panel concatenates extra args as
+  // `[object Object]`, which polluted toast/copy text.
+  if (payload === undefined) {
+    fn(line);
+    return;
+  }
+  let extra: string;
+  try {
+    extra = typeof payload === 'string' ? payload : JSON.stringify(payload);
+  } catch {
+    extra = String(payload);
+  }
+  fn(extra ? `${line} ${extra}` : line);
 }
 
 export function diagInfo(
@@ -113,15 +124,35 @@ export function isStageError(err: unknown): err is StageError {
   return err instanceof StageError;
 }
 
+function errorReason(err: unknown, fallback: string): string {
+  if (err instanceof Error) return err.message.trim() || fallback;
+  if (typeof err === 'string') return err.trim() || fallback;
+  if (err && typeof err === 'object') {
+    const msg = (err as { message?: unknown }).message;
+    if (typeof msg === 'string' && msg.trim()) return msg.trim();
+    try {
+      const json = JSON.stringify(err);
+      if (json && json !== '{}') return json.slice(0, 160);
+    } catch {
+      /* ignore */
+    }
+  }
+  return fallback;
+}
+
 export function wrapStageError(
   stage: DiagStage,
   err: unknown,
   fallback = '失败',
 ): StageError {
   if (isStageError(err)) return err;
-  const reason = err instanceof Error ? err.message : String(err || fallback);
+  const reason = errorReason(err, fallback);
   const wrapped = new StageError(stage, reason || fallback, err);
-  diagError(stage, `失败：${wrapped.reason}`, err);
+  // Pass a plain detail object so consoles never append bare `[object Object]`.
+  diagError(stage, `失败：${wrapped.reason}`, {
+    name: err instanceof Error ? err.name : typeof err,
+    message: reason,
+  });
   return wrapped;
 }
 

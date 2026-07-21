@@ -32,6 +32,17 @@
     "message": "Read the translation aloud during SI (captions still shown)"
   },
   "openSettings": { "message": "Open settings" },
+  "settingsBack": { "message": "← Back" },
+  "directionPrefs": { "message": "Translate directions" },
+  "directionPrefsHint": {
+    "message": "Choose EN→ZH, ZH→EN, or both (selection bubble + SI)."
+  },
+  "dirEnToZh": { "message": "English → Chinese" },
+  "dirZhToEn": { "message": "Chinese → English" },
+  "directionBoth": { "message": "EN ↔ ZH (both)" },
+  "toastDirectionDisabled": {
+    "message": "This direction is turned off in settings"
+  },
 
   "stateOn": { "message": "On" },
   "stateOff": { "message": "Off" },

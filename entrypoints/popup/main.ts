@@ -1,9 +1,14 @@
 import { applyDomI18n, t } from '../../lib/i18n';
 import { publicPrefsItem } from '../../lib/public-prefs';
-import { setEnabled, setSpeechMode } from '../../lib/settings-store';
+import {
+  setEnabled,
+  setLangDirections,
+  setSpeechMode,
+} from '../../lib/settings-store';
 import type { IflytekPipeline, SpeechMode } from '../../lib/storage';
 import {
   normalizeIflytekPipeline,
+  normalizeLangDirections,
   normalizeSpeechMode,
 } from '../../lib/storage';
 import type { PageStatusResponse } from '../../lib/messages';
@@ -21,8 +26,12 @@ import {
 applyDomI18n();
 
 const enabledEl = document.getElementById('enabled') as HTMLInputElement;
+const enToZhEl = document.getElementById('enToZh') as HTMLInputElement;
+const zhToEnEl = document.getElementById('zhToEn') as HTMLInputElement;
 const statusEl = document.getElementById('status') as HTMLParagraphElement;
-const optionsLink = document.getElementById('open-options') as HTMLAnchorElement;
+const optionsLink = document.getElementById('open-options') as HTMLButtonElement;
+const settingsPanel = document.getElementById('settings-panel') as HTMLElement;
+const settingsBack = document.getElementById('settings-back') as HTMLButtonElement;
 const siToggleBtn = document.getElementById('siToggle') as HTMLButtonElement;
 const speechInputs = Array.from(
   document.querySelectorAll<HTMLInputElement>('input[name="speechMode"]'),
@@ -35,6 +44,8 @@ const stPipeline = document.getElementById('stPipeline') as HTMLElement;
 const stSpeech = document.getElementById('stSpeech') as HTMLElement;
 const stSi = document.getElementById('stSi') as HTMLElement;
 const stVideo = document.getElementById('stVideo') as HTMLElement;
+const dirFoldSummary = document.getElementById('dirFoldSummary') as HTMLElement;
+const liveFoldSummary = document.getElementById('liveFoldSummary') as HTMLElement;
 
 let lastActionError = '';
 /** Last known video presence — used for optimistic SI sync (caption ×). */
@@ -102,6 +113,13 @@ async function loadBridge(): Promise<BridgeState> {
   return { connected: true, page };
 }
 
+function directionLabel(enToZh: boolean, zhToEn: boolean): string {
+  if (enToZh && zhToEn) return t('directionBoth');
+  if (enToZh) return t('dirEnToZh');
+  if (zhToEn) return t('dirZhToEn');
+  return t('directionBoth');
+}
+
 function paintLive(
   prefs: {
     enabled: boolean;
@@ -109,6 +127,8 @@ function paintLive(
     speechMode: SpeechMode;
     providerId: string;
     iflytekPipeline: IflytekPipeline;
+    enToZh: boolean;
+    zhToEn: boolean;
   },
   bridge: BridgeState,
   opts?: { preferError?: string },
@@ -120,14 +140,16 @@ function paintLive(
   const pipeline = prefs.iflytekPipeline;
   const mode = prefs.speechMode;
 
+  const dirText = directionLabel(prefs.enToZh, prefs.zhToEn);
   stEnabled.textContent = prefs.enabled ? t('stateOn') : t('stateOff');
-  stLang.textContent = t('directionZhEn');
+  stLang.textContent = dirText;
   stProvider.textContent = `${providerLabel(providerId)}${
     prefs.hasApiKey ? t('keyConfigured') : t('keyMissing')
   }`;
   stPipeline.textContent = pipelineLabel(providerId, pipeline);
   stSpeech.textContent =
     mode === 'voice' ? t('modeVoice') : t('modeCaption');
+  dirFoldSummary.textContent = dirText;
 
   if (!bridge.connected) {
     stSi.textContent = t('siNotConnected');
@@ -140,6 +162,21 @@ function paintLive(
     stVideo.textContent = hasVideo ? t('videoDetected') : t('videoMissing');
     if (!hasVideo) stVideo.className = 'err';
     else stVideo.className = '';
+  }
+
+  // Compact line shown when「实时状态」is folded.
+  const liveBits = [
+    prefs.enabled ? t('stateOn') : t('stateOff'),
+    providerLabel(providerId),
+    speechOn ? t('statusSiRunning') : t('statusSiIdle'),
+  ];
+  if (!bridge.connected) {
+    liveFoldSummary.textContent = [
+      prefs.enabled ? t('stateOn') : t('stateOff'),
+      t('statusNotConnected'),
+    ].join(' · ');
+  } else {
+    liveFoldSummary.textContent = liveBits.join(' · ');
   }
 
   siToggleBtn.disabled = !prefs.enabled;
@@ -176,7 +213,13 @@ function paintLive(
 
 async function refresh(opts?: { preferError?: string }) {
   const prefs = await publicPrefsItem.getValue();
+  const dirs = normalizeLangDirections({
+    enToZh: prefs.enToZh,
+    zhToEn: prefs.zhToEn,
+  });
   enabledEl.checked = !!prefs.enabled;
+  enToZhEl.checked = dirs.enToZh;
+  zhToEnEl.checked = dirs.zhToEn;
   setSpeechUi(normalizeSpeechMode(prefs.speechMode));
   const bridge = await loadBridge();
   paintLive(
@@ -186,6 +229,8 @@ async function refresh(opts?: { preferError?: string }) {
       speechMode: normalizeSpeechMode(prefs.speechMode),
       providerId: prefs.providerId ?? 'openai',
       iflytekPipeline: normalizeIflytekPipeline(prefs.iflytekPipeline),
+      enToZh: dirs.enToZh,
+      zhToEn: dirs.zhToEn,
     },
     bridge,
     opts,
@@ -210,6 +255,10 @@ async function syncFromSiLive(live: SiLiveState | null | undefined) {
   setSpeechUi(mode);
 
   // Optimistic paint so「关闭同传」/实时状态 flip without waiting on messaging.
+  const dirs = normalizeLangDirections({
+    enToZh: prefs.enToZh,
+    zhToEn: prefs.zhToEn,
+  });
   paintLive(
     {
       enabled: !!prefs.enabled,
@@ -217,6 +266,8 @@ async function syncFromSiLive(live: SiLiveState | null | undefined) {
       speechMode: mode,
       providerId: prefs.providerId ?? 'openai',
       iflytekPipeline: normalizeIflytekPipeline(prefs.iflytekPipeline),
+      enToZh: dirs.enToZh,
+      zhToEn: dirs.zhToEn,
     },
     {
       connected: true,
@@ -245,6 +296,32 @@ enabledEl.addEventListener('change', async () => {
     enabledEl.checked = false;
     setStatus(e instanceof Error ? e.message : String(e), 'err');
   }
+});
+
+async function persistDirectionsFromUi() {
+  try {
+    lastActionError = '';
+    // Keep at least one direction on in the UI before save.
+    if (!enToZhEl.checked && !zhToEnEl.checked) {
+      enToZhEl.checked = true;
+      zhToEnEl.checked = true;
+    }
+    await setLangDirections({
+      enToZh: enToZhEl.checked,
+      zhToEn: zhToEnEl.checked,
+    });
+    await refresh();
+  } catch (e) {
+    setStatus(e instanceof Error ? e.message : String(e), 'err');
+    await refresh();
+  }
+}
+
+enToZhEl.addEventListener('change', () => {
+  void persistDirectionsFromUi();
+});
+zhToEnEl.addEventListener('change', () => {
+  void persistDirectionsFromUi();
 });
 
 for (const el of speechInputs) {
@@ -327,9 +404,26 @@ siToggleBtn.addEventListener('click', async () => {
   }
 });
 
-optionsLink.addEventListener('click', (e) => {
-  e.preventDefault();
-  browser.runtime.openOptionsPage();
+function openSettingsPanel() {
+  settingsPanel.hidden = false;
+  // Reload iframe so options reflect latest storage after vault edits.
+  const frame = document.getElementById('settings-frame') as HTMLIFrameElement | null;
+  if (frame) {
+    frame.src = '/options.html';
+  }
+}
+
+function closeSettingsPanel() {
+  settingsPanel.hidden = true;
+  void refresh();
+}
+
+optionsLink.addEventListener('click', () => {
+  openSettingsPanel();
+});
+
+settingsBack.addEventListener('click', () => {
+  closeSettingsPanel();
 });
 
 function bindFoldableSections(): void {
@@ -350,12 +444,15 @@ function bindFoldableSections(): void {
       }
     };
 
-    let initial = false;
+    // Default folded; only expand when user previously saved '0'.
+    let initial = true;
     if (key) {
       try {
-        initial = localStorage.getItem(key) === '1';
+        const saved = localStorage.getItem(key);
+        if (saved === '0') initial = false;
+        else if (saved === '1') initial = true;
       } catch {
-        initial = false;
+        initial = true;
       }
     }
     apply(initial);

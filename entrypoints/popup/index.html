@@ -10,10 +10,36 @@
     <main class="panel">
       <header class="head">
         <img class="logo" src="/icon-32.png" width="28" height="28" alt="" />
-        <div>
+        <div class="head-text">
           <h1>Lingua Bridge</h1>
           <p class="sub" data-i18n="popupSub">Chinese↔English only · selection bubble · video SI</p>
         </div>
+        <button
+          type="button"
+          id="open-options"
+          class="settings-icon-btn"
+          data-i18n-aria="openSettings"
+          data-i18n-title="openSettings"
+          aria-label="Open settings"
+          title="Open settings"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none">
+            <path
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
+            />
+            <path
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .62 1.7 1.7 0 0 0-.4 1.08V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.62-1 1.7 1.7 0 0 0-1.08-.4H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.62 1.7 1.7 0 0 0 .4-1.08V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.24.3.58.5 1 .55H21a2 2 0 1 1 0 4h-.09c-.43.05-.8.26-1.08.55-.2.22-.34.5-.43.8Z"
+            />
+          </svg>
+        </button>
       </header>
 
       <label class="switch-row">
@@ -25,17 +51,52 @@
       </label>
 
       <section
+        class="dir-card foldable"
+        data-fold-key="popup.fold.dir.v2"
+        aria-labelledby="dirTitle"
+      >
+        <button
+          type="button"
+          class="fold-toggle"
+          aria-expanded="false"
+          aria-controls="dirFoldBody"
+        >
+          <div class="fold-title-block">
+            <h2 id="dirTitle" class="modes-title" data-i18n="directionPrefs">Translate directions</h2>
+            <span id="dirFoldSummary" class="fold-summary">—</span>
+          </div>
+          <span class="fold-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div id="dirFoldBody" class="fold-body">
+          <p class="modes-desc" data-i18n="directionPrefsHint">
+            Choose EN→ZH, ZH→EN, or both (selection bubble + SI).
+          </p>
+          <label class="dir-row">
+            <input type="checkbox" id="enToZh" checked />
+            <span data-i18n="dirEnToZh">English → Chinese</span>
+          </label>
+          <label class="dir-row">
+            <input type="checkbox" id="zhToEn" checked />
+            <span data-i18n="dirZhToEn">Chinese → English</span>
+          </label>
+        </div>
+      </section>
+
+      <section
         class="status-card foldable"
-        data-fold-key="popup.fold.live"
+        data-fold-key="popup.fold.live.v2"
         aria-labelledby="liveTitle"
       >
         <button
           type="button"
           class="fold-toggle"
-          aria-expanded="true"
+          aria-expanded="false"
           aria-controls="liveFoldBody"
         >
-          <h2 id="liveTitle" class="modes-title" data-i18n="liveStatus">Live status</h2>
+          <div class="fold-title-block">
+            <h2 id="liveTitle" class="modes-title" data-i18n="liveStatus">Live status</h2>
+            <span id="liveFoldSummary" class="fold-summary">—</span>
+          </div>
           <span class="fold-chevron" aria-hidden="true">▾</span>
         </button>
         <div id="liveFoldBody" class="fold-body">
@@ -53,7 +114,7 @@
 
       <section
         class="modes foldable"
-        data-fold-key="popup.fold.si"
+        data-fold-key="popup.fold.si.v2"
         aria-labelledby="modesTitle"
       >
         <div class="modes-head">
@@ -98,8 +159,23 @@
       </section>
 
       <p id="status" class="status" role="status"></p>
-      <a id="open-options" class="link" href="#" data-i18n="openSettings">Open settings</a>
     </main>
+
+    <div id="settings-panel" class="settings-panel" hidden>
+      <header class="settings-bar">
+        <button type="button" id="settings-back" class="settings-back" data-i18n="settingsBack">
+          ← Back
+        </button>
+        <span class="settings-title" data-i18n="optionsTitle">Settings</span>
+      </header>
+      <iframe
+        id="settings-frame"
+        class="settings-frame"
+        title="Lingua Bridge Settings"
+        src="/options.html"
+      ></iframe>
+    </div>
+
     <script type="module" src="./main.ts"></script>
   </body>
 </html>

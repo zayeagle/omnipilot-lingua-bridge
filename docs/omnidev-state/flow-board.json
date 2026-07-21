@@ -3,12 +3,12 @@
   "status": "done",
   "mode": "auto",
   "autopilot": true,
-  "current_phase": 4,
-  "phases_enabled": [0, 2, 3, 4],
-  "phases_skipped": [1, 5],
-  "phases_done": [0, 2, 3, 4],
-  "started_at": "2026-07-18T11:30:00+08:00",
-  "updated_at": "2026-07-18T11:40:00+08:00",
-  "last_action": "iflytek_integration_complete",
-  "requirement": "iFlytek STT+MT+TTS native integration"
+  "current_phase": 5,
+  "phases_enabled": [0, 2, 3, 4, 5],
+  "phases_skipped": [1],
+  "phases_done": [0, 2, 3, 4, 5],
+  "started_at": "2026-07-21T17:28:00+08:00",
+  "updated_at": "2026-07-21T17:51:00+08:00",
+  "last_action": "auto_complete_pack",
+  "requirement": "direction toggles + in-popup settings + iframe bubble"
 }

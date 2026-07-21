@@ -12,4 +12,10 @@ describe('diag stage errors', () => {
     const inner = new StageError('stt', '超时');
     expect(wrapStageError('mt', inner)).toBe(inner);
   });
+
+  it('wrapStageError does not stringify plain objects as [object Object]', () => {
+    const wrapped = wrapStageError('explain', { message: 'AI 返回无法解析' });
+    expect(wrapped.reason).toBe('AI 返回无法解析');
+    expect(wrapped.message).not.toContain('[object Object]');
+  });
 });

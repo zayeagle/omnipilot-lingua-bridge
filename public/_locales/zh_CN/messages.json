@@ -28,6 +28,17 @@
   "modeVoice": { "message": "语音传译" },
   "modeVoiceHint": { "message": "同传时朗读译文（仍显示字幕）" },
   "openSettings": { "message": "打开设置" },
+  "settingsBack": { "message": "← 返回" },
+  "directionPrefs": { "message": "翻译方向" },
+  "directionPrefsHint": {
+    "message": "可单独开关英→中 / 中→英（划词气泡与同传共用）"
+  },
+  "dirEnToZh": { "message": "英 → 中" },
+  "dirZhToEn": { "message": "中 → 英" },
+  "directionBoth": { "message": "中 ↔ 英（双向）" },
+  "toastDirectionDisabled": {
+    "message": "该翻译方向已在设置中关闭"
+  },
 
   "stateOn": { "message": "已开启" },
   "stateOff": { "message": "已关闭" },

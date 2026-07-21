@@ -54,6 +54,17 @@ const FALLBACK: MessageTable = {
   },
   siStopped: { message: 'SI stopped' },
   openSettings: { message: 'Open settings' },
+  settingsBack: { message: '← Back' },
+  directionPrefs: { message: 'Translate directions' },
+  directionPrefsHint: {
+    message: 'Choose EN→ZH, ZH→EN, or both (selection bubble + SI).',
+  },
+  dirEnToZh: { message: 'English → Chinese' },
+  dirZhToEn: { message: 'Chinese → English' },
+  directionBoth: { message: 'EN ↔ ZH (both)' },
+  toastDirectionDisabled: {
+    message: 'This direction is turned off in settings',
+  },
   optionsTitle: { message: 'Lingua Bridge Settings' },
   bubbleTranslate: { message: 'Translate' },
   bubbleResultTitle: { message: 'Translation' },

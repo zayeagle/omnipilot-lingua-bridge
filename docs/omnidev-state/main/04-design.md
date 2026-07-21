@@ -1,53 +1,54 @@
----
-version: 9
-artifact: 04-design.md
-complexity: M
-last_updated: 2026-07-18T14:28:00+08:00
-history_ref: 04-design-history.md
----
+# Design — direction prefs · in-popup settings · iframe bubble
 
-# Design — Security re-audit #3 (SW session + fail-closed)
-
-## Feature F33: SW-only unlock session (fix wrong JS world)
+## Feature F1: Translate direction toggles (bubble + SI)
 ### Business Context
-- **Related**: `key-session`, `settings-store`, `options/main`, `background` `security.*`
-- **Impact**: hardening unlock actually enables AI in SW; no silent Libre while UI says unlocked
+- **Related**: selection bubble, page translate, video SI (`lang-detect`, `content.ts`)
+- **Impact**: users can enable EN→ZH, ZH→EN, or both independently
 
 ### Implementation Logic
-1. Options **must not** call `unlockWithPassphrase` / `getSecurityStatus` / rely on options-world `setUnlockedVault`. Use `browser.runtime.sendMessage` for `security.unlock` / `security.status` / `security.lock` only.
-2. After harden `saveAiConfig` from options (passphrase present): persist cipher in storage, then `security.unlock` so SW `key-session` holds secrets. `saveAiConfig` may still call `setUnlockedVault` when running inside SW; when called from options, vault set is inert for AI — SW unlock is mandatory follow-up.
-3. Prefer thin options helpers (`lib/security-client.ts`): `unlockSession`, `fetchSecurityStatus` wrapping messages.
-4. Background keep existing `security.*` handlers as SSOT for session memory.
+1. Add `LangDirectionPrefs { enToZh: boolean; zhToEn: boolean }` to `ExtensionSettings` + `PublicPrefs` (defaults both `true`).
+2. Helpers: `isDirectionEnabled(source, prefs)` · `allowedTargetOrNull(source, prefs)`.
+3. Bubble: if source lang disabled → do not show bubble (or show disabled hint once — prefer hide).
+4. SI: after ASR source resolved, if that direction off → skip translate/speak for chunk (caption may show source-only optional; v1 = skip chunk).
+5. Popup: two checkboxes under master switch; sync via settings-store.
 
 ### Edge Cases
-- Happy: unlock in options → SW status.unlocked true → translate uses provider | Err: wrong pass | Boundary: SW restart clears session; options shows locked
+- Happy: only enToZh → English selection bubbles, Chinese selection ignored | Err: both off → treat as both on OR force master-off UX (v1: coerce at least one on save) | Boundary: `unknown` lang → no bubble
 
 ### Data Changes
 | Entity | Change | Details |
-| options/main | message-only unlock/status | no direct settings-store unlock |
-| security-client (new) | thin RPC | optional |
+| ExtensionSettings / PublicPrefs | add | `enToZh`, `zhToEn` booleans |
 
-## Feature F34: Fail-closed + sender.id + secret redact
+## Feature F2: Settings stay inside popup
 ### Business Context
-- **Related**: `background.ts`, `messages.ts`, `ai-client.sanitizeErrorMessage`
-- **Impact**: locked vault never Libre-exfils user text; stricter security sender; fewer secret leaks in logs/errors
+- **Related**: `popup/main.ts` `openOptionsPage()` leaves popup
+- **Impact**: click 设置 expands in-popup panel (iframe → `options.html` or slim embed)
 
 ### Implementation Logic
-1. `resolveAiConfigForRequest`: return typed failure `{ ok:false, reason:'locked'|'missing_key', error }` (or equivalent). Background: if `locked` → return error, **no** `freeTextResponse`. If `missing_key` → free path OK.
-2. `isExtensionPageSender`: require `sender.id === browser.runtime.id` **and** `sender.tab == null` (F32 leftover).
-3. Extend `sanitizeErrorMessage(raw, ...secrets)` to redact apiKey + iflytekApiSecret (+ optional auth query fragments). Wire from ai-handler when iflytek secrets present.
-4. Out of this slice: host_permissions tighten, Base URL allowlist, iFlytek query-auth redesign, Shadow DOM.
+1. Replace link handler: toggle `#settings-panel` in popup; do **not** call `openOptionsPage`.
+2. Panel hosts `<iframe src="/options.html">` (same extension origin) + Back button.
+3. Keep full options page loadable via chrome://extensions for power users (optional secondary link “在标签页打开” collapsed).
 
 ### Edge Cases
-- Happy: no key → Libre | Err: hardened+locked → explicit unlock message | Boundary: wrong sender.id → security denied
+- Happy: settings iframe loads, popup stays | Err: iframe CSP — use same-extension URL | Boundary: popup height — CSS min-height + scroll
 
 ### Data Changes
 | Entity | Change | Details |
-| resolveAiConfigForRequest | reason field | background branch |
-| messages.isExtensionPageSender | id check | UNIT update |
-| sanitizeErrorMessage | multi-secret | UNIT |
+| popup HTML/CSS/TS | UI only | no schema |
 
-## Out of scope
-- iFlytek query-string auth protocol change
-- `<all_urls>` / Base URL private-IP policy (backlog)
-- Shadow DOM
+## Feature F3: Internal page selection bubble (iframe)
+### Business Context
+- **Related**: `content.ts` matches `<all_urls>` without `allFrames`
+- **Impact**: enterprise SPA iframes get bubble
+
+### Implementation Logic
+1. Set `allFrames: true` on content script.
+2. Ensure bubble positions with frame-local rect (already uses `getSelectionRect` in-frame).
+3. Document residual: cross-origin iframes without extension injection still fail; Shadow DOM out of v1 unless quick win.
+
+### Edge Cases
+- Happy: same-origin iframe selection shows bubble | Err: cross-origin — cannot inject | Boundary: nested frames OK with allFrames
+
+### Data Changes
+| Entity | Change | Details |
+| content script registration | flag | `allFrames: true` |

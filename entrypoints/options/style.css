@@ -252,14 +252,24 @@ select:focus {
   accent-color: var(--accent);
 }
 
-.form-foot {
+.form-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-top: 8px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
+  margin: 0 0 8px;
+  padding: 0 0 16px;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--panel);
+}
+
+.form-head .hint {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .hardening-toggle {

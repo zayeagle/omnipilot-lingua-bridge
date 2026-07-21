@@ -1,30 +1,32 @@
 ---
 branch: main
-last_phase: 4
-timestamp: 2026-07-18T14:32:00+08:00
+last_phase: 5
+timestamp: 2026-07-21T17:51:00+08:00
 complexity: M
-status: in_progress
+status: completed
 platform: cursor
-autopilot: false
+autopilot: true
 native_attempted: true
 native_method: md_table
 pending_decision:
   decision_point: checkpoint
   options:
-    - { id: next, command: "/od n", label: "Enter Phase 5 Deploy" }
-    - { id: skip, command: "/od sk 5", label: "Skip Deploy" }
-    - { id: revise, command: "/od ad", label: "Revise tests" }
+    - { id: next, command: "/od ps", label: "Commit changes" }
     - { id: help, command: "/od h", label: "Help" }
-    - { id: cancel, command: "/od x", label: "Cancel / exit" }
+    - { id: cancel, command: "/od x", label: "Exit" }
 ---
 
 ## 会话目标
-Phase 4 QA 完成（Security re-audit #3 / 0.4.19）。
+方向开关 · popup 内设置 · iframe 气泡 — 已完成并打包。
 
-## Phase 4
-- Profile frontend-only-M · UNIT/INT/SMK/REG all PASS (85 tests)
-- Report: `05-test-report.md`
-- Pack: `.output/omnipilot-lingua-bridge-0.4.19-chrome.zip`
+## Key Decisions
+- autopilot Pre-Dev proceed → implemented F1–F3
+- Soft: phase2/4/5 checkpoints auto-advanced after pack
+
+## Deliverables
+- Code: directions + settings panel + allFrames
+- Tests: 105 PASS
+- Pack: `.output/omnipilot-lingua-bridge-0.4.29-chrome.zip`
 
 ## 恢复指引
-`/od n` → Phase 5 Deploy；或 `/od sk 5` 跳过部署后收工。
+会话已完成。可选 `/od ps` 提交，或 `/od x` 退出。
