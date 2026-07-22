@@ -6,7 +6,7 @@ export default defineConfig({
     name: '__MSG_extName__',
     description: '__MSG_extDescription__',
     default_locale: 'en',
-    version: '0.4.29',
+    // version comes from package.json (WXT default)
     permissions: ['storage', 'activeTab', 'scripting'],
     host_permissions: ['<all_urls>'],
     icons: {
