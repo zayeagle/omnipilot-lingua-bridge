@@ -5,3 +5,4 @@
 {"ts":"2026-07-18T09:44:00+08:00","phase":3,"type":"insight","text":"Encrypt-at-rest + remembered passphrase enables auto-unlock after browser restart; local threat same as plaintext."}
 {"ts":"2026-07-18T11:33:00+08:00","phase":2,"type":"insight","text":"iFlytek needs HMAC+WSS clients in SW; OpenAI /v1/audio cannot consume xfyun keys."}
 {"ts":"2026-07-18T11:40:00+08:00","phase":3,"type":"insight","text":"iFlytek SI needs content-side PCM16@16k capture; MediaRecorder webm is Whisper-only."}
+{"ts":"2026-07-22T20:45:00+08:00","phase":2,"type":"phase_exit","insight":"Action popup cannot meet drag+stay-open; use empty default_popup + content Shadow iframe host.","requirement_id":"floating-console-panel"}

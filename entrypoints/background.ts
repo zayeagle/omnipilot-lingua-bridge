@@ -25,6 +25,9 @@ import {
   resolveAiConfigForRequest,
   unlockWithPassphrase,
 } from '../lib/settings-store';
+import { isConsoleInjectableUrl } from '../lib/console-panel';
+import { ensureTabContent } from '../lib/tab-bridge';
+import { t } from '../lib/i18n';
 
 async function freeTranslate(
   texts: string[],
@@ -70,10 +73,73 @@ export default defineBackground(() => {
 
   browser.runtime.onInstalled.addListener(() => {
     void ensurePublicPrefsSynced().then(() => ensureAutoUnlocked());
+    void browser.action.setBadgeText({ text: '' });
   });
 
   browser.runtime.onStartup.addListener(() => {
     void ensureAutoUnlocked();
+    void browser.action.setBadgeText({ text: '' });
+  });
+
+  async function flashHint(title: string): Promise<void> {
+    // Tooltip only — avoid badge "?" which looks like an error.
+    try {
+      await browser.action.setBadgeText({ text: '' });
+      await browser.action.setTitle({ title });
+      setTimeout(() => {
+        void browser.action.setTitle({ title: t('actionTitle') });
+      }, 4000);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function clearHint(): Promise<void> {
+    try {
+      await browser.action.setBadgeText({ text: '' });
+      await browser.action.setTitle({ title: t('actionTitle') });
+    } catch {
+      /* ignore */
+    }
+  }
+
+  /**
+   * Toggle in-page floating console on the tab where the icon was clicked.
+   * Uses the click event's tab (not tabs.query) so the panel stays on that page.
+   */
+  async function toggleFloatingConsole(
+    clickTab?: { id?: number; url?: string },
+  ): Promise<void> {
+    const tabId = clickTab?.id;
+    const url = clickTab?.url;
+
+    if (tabId == null) {
+      await flashHint(t('consoleInjectFailed'));
+      return;
+    }
+
+    // Only bail out for known system pages — missing url still attempts inject.
+    if (url && !isConsoleInjectableUrl(url)) {
+      await flashHint(t('consoleRestricted'));
+      return;
+    }
+
+    const ready = await ensureTabContent(tabId);
+    if (!ready) {
+      await flashHint(t('consoleInjectFailed'));
+      return;
+    }
+
+    try {
+      await browser.tabs.sendMessage(tabId, { type: 'ui.console.toggle' });
+      await clearHint();
+    } catch {
+      await flashHint(t('consoleInjectFailed'));
+    }
+  }
+
+  browser.action.onClicked.addListener((tab) => {
+    void toggleFloatingConsole(tab);
   });
 
   browser.runtime.onMessage.addListener((message, sender, sendResponse) => {

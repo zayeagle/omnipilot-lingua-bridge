@@ -54,6 +54,16 @@ const FALLBACK: MessageTable = {
   },
   siStopped: { message: 'SI stopped' },
   openSettings: { message: 'Open settings' },
+  closeConsole: { message: 'Close' },
+  consoleRestricted: {
+    message:
+      'Cannot show the floating panel on system pages. Open a normal website and click again.',
+  },
+  consoleInjectFailed: {
+    message: 'Could not inject the floating panel. Refresh the page and try again.',
+  },
+  dragHint: { message: 'Drag to move' },
+  actionTitle: { message: 'Lingua Bridge' },
   settingsBack: { message: '← Back' },
   directionPrefs: { message: 'Translate directions' },
   directionPrefsHint: {

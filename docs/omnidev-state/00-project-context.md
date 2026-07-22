@@ -65,8 +65,7 @@ No DB / MQ / backend in scope (client-side extension; AI calls from extension or
 - Security fix 0.4.19: options unlock/status via security.* into SW key-session; resolve reason locked → no Libre; sender.id===runtime.id; sanitize multi-secret. Residual backlog: host_permissions, Base URL policy, iFlytek query-auth, Shadow DOM.
 - Custom OpenAI-compat (2026-07-20): `AI 返回无法解析` often SSE/default-stream; fix = `stream:false` + SSE merge + content-parts / reasoning_content / markdown fences.
 - 2026-07-21: direction toggles + in-popup settings + internal-page bubble — shipped: enToZh/zhToEn prefs, popup iframe settings, content allFrames.
-
-
+- 2026-07-22: native action popup cannot stay open/drag on page — floating console = empty default_popup + content Shadow iframe host.
 
 ## UX Principles (confirmed)
 

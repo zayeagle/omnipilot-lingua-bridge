@@ -39,6 +39,7 @@ import {
   isPageSpeechModeRequest,
   isPageSpeechRequest,
   isPageStatusRequest,
+  isUiConsoleRequest,
 } from '../lib/messages';
 import { showToast } from '../lib/toast-ui';
 import { diagError, diagInfo, diagWarn } from '../lib/diag';
@@ -51,6 +52,10 @@ import {
   setBubbleResult,
   showSelectionBubble,
 } from '../lib/selection-bubble';
+import {
+  hideConsoleHost,
+  toggleConsoleHost,
+} from '../lib/console-host';
 
 /** Stable page key — full navigation / SPA route change clears per-page opts. */
 function pageScopeKey(): string {
@@ -617,6 +622,29 @@ export default defineContentScript({
 
     browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       if (!message || typeof message !== 'object') return false;
+      if (isUiConsoleRequest(message)) {
+        // Only top frame hosts the floating console (allFrames content still runs).
+        if (window !== window.top) {
+          sendResponse({ ok: true, open: false, skipped: true });
+          return true;
+        }
+        try {
+          if (message.type === 'ui.console.close') {
+            hideConsoleHost();
+            sendResponse({ ok: true, open: false });
+            return true;
+          }
+          const open = toggleConsoleHost();
+          sendResponse({ ok: true, open });
+        } catch (e) {
+          sendResponse({
+            ok: false,
+            open: false,
+            error: e instanceof Error ? e.message : String(e),
+          });
+        }
+        return true;
+      }
       if (isPageStatusRequest(message)) {
         sendResponse({
           ok: true,

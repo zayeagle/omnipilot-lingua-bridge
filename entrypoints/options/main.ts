@@ -307,75 +307,94 @@ clearVaultBtn.addEventListener('click', async () => {
 });
 
 async function load() {
-  const settings = await getSettings();
-  const status = await fetchSecurityStatus();
-  encryptedMode = hasEncryptedKey(settings.security);
-  hasStoredKey = hasStoredCredential(settings);
-  hardeningEl.checked = settings.security.hardeningEnabled;
-  needsManualUnlock = encryptedMode && !status.unlocked;
-  syncHardeningUi();
-
-  apiKeyEl.value = '';
-  iflytekApiKeyEl.value = '';
-  apiKeyEl.placeholder = hasStoredKey
-    ? encryptedMode
-      ? '已加密保存，留空则保持；填写则用新 Key 重新加密'
-      : '已保存，留空则保持不变'
-    : 'sk-… 或供应商 Key';
-  iflytekApiKeyEl.placeholder = apiKeyEl.placeholder;
-  keyHintEl.textContent = encryptedMode
-    ? status.unlocked
-      ? '凭证已加密；本次会话已解锁。浏览器重启后需在设置页重新解锁。'
-      : '凭证已加密。请在下方输入口令解锁后再使用同传/翻译。'
-    : hasValidApiKey(settings.aiConfig)
-      ? `当前 Key：${maskApiKey(settings.aiConfig.apiKey)}（输入新值可替换）`
-      : 'Key 仅保存在本机浏览器。';
-  iflytekKeyHintEl.textContent = keyHintEl.textContent;
-
-  if (needsManualUnlock) {
-    setMsg('安全加固已开启：请输入口令解锁本会话', '');
-  }
-
-  baseUrlEl.value = settings.aiConfig.baseUrl;
-  chatModelEl.value = settings.aiConfig.chatModel;
-  sttModelEl.value = settings.aiConfig.sttModel;
-  ttsModelEl.value = settings.aiConfig.ttsModel;
-  iflytekAppIdEl.value = settings.aiConfig.iflytekAppId ?? '';
-  // Never hydrate APISecret from storage when hardened (secret is in the vault).
-  iflytekApiSecretEl.value = encryptedMode
-    ? ''
-    : (settings.aiConfig.iflytekApiSecret ?? '');
-  iflytekApiSecretEl.placeholder = encryptedMode
-    ? '已加密保存，留空则保持；填写则随口令重新加密'
-    : 'APISecret';
-  fillProductSelect(
-    iflytekSttProductEl,
-    IFLYTEK_STT_PRODUCTS,
-    normalizeIflytekSttProduct(
-      settings.aiConfig.iflytekSttProduct ?? settings.aiConfig.sttModel,
-    ),
-  );
-  fillProductSelect(
-    iflytekMtProductEl,
-    IFLYTEK_MT_PRODUCTS,
-    normalizeIflytekMtProduct(
-      settings.aiConfig.iflytekMtProduct ?? settings.aiConfig.chatModel,
-    ),
-  );
-  fillProductSelect(
-    iflytekTtsProductEl,
-    IFLYTEK_TTS_PRODUCTS,
-    normalizeIflytekTtsProduct(
-      settings.aiConfig.iflytekTtsProduct ?? settings.aiConfig.ttsModel,
-    ),
-  );
-  syncProductHints();
-  setIflytekPipeline(normalizeIflytekPipeline(settings.aiConfig.iflytekPipeline));
-
-  providerId =
-    (settings.aiConfig.providerId as ProviderId) || inferProviderId(settings.aiConfig.baseUrl);
+  // Always paint provider buttons first — security status must not block the UI.
   renderProviderGrid();
   applyProvider(providerId, false);
+
+  try {
+    const settings = await getSettings();
+    let status = {
+      hardeningEnabled: false,
+      hasCredential: false,
+      unlocked: false,
+      autoUnlock: false,
+    };
+    try {
+      status = await fetchSecurityStatus();
+    } catch {
+      /* floating-console embed may briefly fail; UI still usable */
+    }
+    encryptedMode = hasEncryptedKey(settings.security);
+    hasStoredKey = hasStoredCredential(settings);
+    hardeningEl.checked = settings.security.hardeningEnabled;
+    needsManualUnlock = encryptedMode && !status.unlocked;
+    syncHardeningUi();
+
+    apiKeyEl.value = '';
+    iflytekApiKeyEl.value = '';
+    apiKeyEl.placeholder = hasStoredKey
+      ? encryptedMode
+        ? '已加密保存，留空则保持；填写则用新 Key 重新加密'
+        : '已保存，留空则保持不变'
+      : 'sk-… 或供应商 Key';
+    iflytekApiKeyEl.placeholder = apiKeyEl.placeholder;
+    keyHintEl.textContent = encryptedMode
+      ? status.unlocked
+        ? '凭证已加密；本次会话已解锁。浏览器重启后需在设置页重新解锁。'
+        : '凭证已加密。请在下方输入口令解锁后再使用同传/翻译。'
+      : hasValidApiKey(settings.aiConfig)
+        ? `当前 Key：${maskApiKey(settings.aiConfig.apiKey)}（输入新值可替换）`
+        : 'Key 仅保存在本机浏览器。';
+    iflytekKeyHintEl.textContent = keyHintEl.textContent;
+
+    if (needsManualUnlock) {
+      setMsg('安全加固已开启：请输入口令解锁本会话', '');
+    }
+
+    baseUrlEl.value = settings.aiConfig.baseUrl;
+    chatModelEl.value = settings.aiConfig.chatModel;
+    sttModelEl.value = settings.aiConfig.sttModel;
+    ttsModelEl.value = settings.aiConfig.ttsModel;
+    iflytekAppIdEl.value = settings.aiConfig.iflytekAppId ?? '';
+    // Never hydrate APISecret from storage when hardened (secret is in the vault).
+    iflytekApiSecretEl.value = encryptedMode
+      ? ''
+      : (settings.aiConfig.iflytekApiSecret ?? '');
+    iflytekApiSecretEl.placeholder = encryptedMode
+      ? '已加密保存，留空则保持；填写则随口令重新加密'
+      : 'APISecret';
+    fillProductSelect(
+      iflytekSttProductEl,
+      IFLYTEK_STT_PRODUCTS,
+      normalizeIflytekSttProduct(
+        settings.aiConfig.iflytekSttProduct ?? settings.aiConfig.sttModel,
+      ),
+    );
+    fillProductSelect(
+      iflytekMtProductEl,
+      IFLYTEK_MT_PRODUCTS,
+      normalizeIflytekMtProduct(
+        settings.aiConfig.iflytekMtProduct ?? settings.aiConfig.chatModel,
+      ),
+    );
+    fillProductSelect(
+      iflytekTtsProductEl,
+      IFLYTEK_TTS_PRODUCTS,
+      normalizeIflytekTtsProduct(
+        settings.aiConfig.iflytekTtsProduct ?? settings.aiConfig.ttsModel,
+      ),
+    );
+    syncProductHints();
+    setIflytekPipeline(normalizeIflytekPipeline(settings.aiConfig.iflytekPipeline));
+
+    providerId =
+      (settings.aiConfig.providerId as ProviderId) ||
+      inferProviderId(settings.aiConfig.baseUrl);
+    renderProviderGrid();
+    applyProvider(providerId, false);
+  } catch (e) {
+    setMsg(e instanceof Error ? e.message : String(e), 'err');
+  }
 }
 
 baseUrlEl.addEventListener('input', () => {

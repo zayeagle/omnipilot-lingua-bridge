@@ -33,9 +33,9 @@ Turn on the master switch, select Chinese or English on any normal webpage, and 
   <img src="./docs/images/selection-bubble.png" width="640" alt="Selection bubble translating English to Chinese"/>
 </p>
 
-### 2. Popup control center
+### 2. Floating control center
 
-The toolbar popup is the control surface: master switch, **live status** (provider, SI style, whether SI is on for this page, video detection), and SI output mode.
+Click the toolbar icon to open a **draggable** console on the current page (× closes it; clicks outside do **not** auto-dismiss). It includes the master switch, **live status** (provider, SI style, whether SI is on for this page, video detection), and SI output mode.
 
 <p align="center">
   <img src="./docs/images/popup.png" width="360" alt="Lingua Bridge popup with live status and SI controls"/>

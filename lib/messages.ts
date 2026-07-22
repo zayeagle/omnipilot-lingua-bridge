@@ -75,6 +75,18 @@ export type PageSpeechStateEvent = {
   speechMode: 'caption' | 'voice';
 };
 
+/** Background / toolbar → content: toggle floating console. */
+export type UiConsoleToggleRequest = {
+  type: 'ui.console.toggle';
+};
+
+/** Close floating console on this page. */
+export type UiConsoleCloseRequest = {
+  type: 'ui.console.close';
+};
+
+export type UiConsoleRequest = UiConsoleToggleRequest | UiConsoleCloseRequest;
+
 /** Popup → content: query live SI / page status. */
 export type PageStatusRequest = {
   type: 'page.status';
@@ -127,6 +139,12 @@ export function isPageSpeechStateEvent(msg: unknown): msg is PageSpeechStateEven
     (msg as { type?: unknown }).type === 'page.speechState' &&
     typeof (msg as { speechOnThisPage?: unknown }).speechOnThisPage === 'boolean'
   );
+}
+
+export function isUiConsoleRequest(msg: unknown): msg is UiConsoleRequest {
+  if (!msg || typeof msg !== 'object') return false;
+  const type = (msg as { type?: unknown }).type;
+  return type === 'ui.console.toggle' || type === 'ui.console.close';
 }
 
 export type TranslateResponse =
@@ -238,7 +256,9 @@ export function validateSecurityRequest(msg: SecurityRequest): string | null {
 
 /**
  * security.* must come from this extension's pages (options/popup),
- * not from a content-script tab or another extension.
+ * not from a content-script or another extension.
+ * Note: when popup/options are iframed into a web page (floating console),
+ * Chrome still sets sender.tab to the host tab — allow by extension URL.
  */
 export function isExtensionPageSender(
   sender: {
@@ -248,6 +268,14 @@ export function isExtensionPageSender(
   },
   extensionId: string,
 ): boolean {
-  if (!extensionId || sender.tab != null) return false;
-  return sender.id === extensionId;
+  if (!extensionId || sender.id !== extensionId) return false;
+  const url = sender.url ?? '';
+  if (
+    url.startsWith(`chrome-extension://${extensionId}/`) ||
+    url.startsWith(`moz-extension://${extensionId}/`)
+  ) {
+    return true;
+  }
+  // Standalone extension page (action popup / options tab): no host tab.
+  return sender.tab == null;
 }

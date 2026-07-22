@@ -27,6 +27,8 @@ body {
     linear-gradient(180deg, #f8fbff, var(--bg));
   min-width: 320px;
   max-width: 360px;
+  /* Standalone popup window: fill the small OS window */
+  min-height: 100vh;
 }
 
 .panel {
@@ -38,6 +40,19 @@ body {
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;
+}
+
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.close-console-btn {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .head-text {

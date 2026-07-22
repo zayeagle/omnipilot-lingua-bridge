@@ -28,6 +28,14 @@
   "modeVoice": { "message": "语音传译" },
   "modeVoiceHint": { "message": "同传时朗读译文（仍显示字幕）" },
   "openSettings": { "message": "打开设置" },
+  "closeConsole": { "message": "關閉" },
+  "consoleRestricted": {
+    "message": "系統頁無法顯示浮層，請切換到一般網頁後再點圖示"
+  },
+  "consoleInjectFailed": {
+    "message": "無法在目前頁注入浮層，請重新整理後再試"
+  },
+  "dragHint": { "message": "拖曳可移動面板" },
   "settingsBack": { "message": "← 返回" },
   "directionPrefs": { "message": "翻译方向" },
   "directionPrefsHint": {

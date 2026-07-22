@@ -28,6 +28,14 @@
   "modeVoice": { "message": "语音传译" },
   "modeVoiceHint": { "message": "同传时朗读译文（仍显示字幕）" },
   "openSettings": { "message": "打开设置" },
+  "closeConsole": { "message": "关闭" },
+  "consoleRestricted": {
+    "message": "系统页无法显示浮层，请切换到普通网页（如 google.com）后再点图标"
+  },
+  "consoleInjectFailed": {
+    "message": "无法在当前页注入浮层，请刷新页面后重试"
+  },
+  "dragHint": { "message": "拖动可移动面板" },
   "settingsBack": { "message": "← 返回" },
   "directionPrefs": { "message": "翻译方向" },
   "directionPrefsHint": {

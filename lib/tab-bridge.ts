@@ -18,10 +18,14 @@ export type ActiveTab =
   | { error: string };
 
 export function isRestrictedUrl(url: string | undefined): string | null {
-  if (!url) return '当前标签页地址不可用';
+  // Missing URL: do not treat as restricted (caller may still try inject via tabId).
+  if (!url) return null;
   if (
-    /^(chrome|chrome-extension|edge|about|devtools|view-source):/i.test(url) ||
-    /^https?:\/\/chrome\.google\.com\/webstore/i.test(url)
+    /^(chrome|chrome-extension|edge|about|devtools|view-source|moz-extension):/i.test(
+      url,
+    ) ||
+    /^https?:\/\/chrome\.google\.com\/webstore/i.test(url) ||
+    /^https?:\/\/addons\.mozilla\.org\//i.test(url)
   ) {
     return '系统页/扩展商店无法开同传，请切到普通网页（如视频页）';
   }
@@ -44,24 +48,38 @@ export async function getActiveTab(): Promise<ActiveTab> {
 
 /** Ping content script; if missing, inject once then retry. */
 export async function ensureTabContent(tabId: number): Promise<boolean> {
-  try {
+  const ping = async () => {
+    // Prefer no frameId — more compatible; main-frame handler still runs.
     await browser.tabs.sendMessage(tabId, { type: 'page.status' });
+  };
+
+  try {
+    await ping();
     return true;
   } catch {
     /* try inject */
   }
+
   try {
     await browser.scripting.executeScript({
-      target: { tabId },
+      target: { tabId, allFrames: false },
       files: [CONTENT_SCRIPT_FILE],
     });
   } catch {
-    return false;
-  }
-  for (let i = 0; i < 8; i++) {
-    await new Promise((r) => setTimeout(r, 60));
     try {
-      await browser.tabs.sendMessage(tabId, { type: 'page.status' });
+      await browser.scripting.executeScript({
+        target: { tabId },
+        files: [CONTENT_SCRIPT_FILE],
+      });
+    } catch {
+      return false;
+    }
+  }
+
+  for (let i = 0; i < 12; i++) {
+    await new Promise((r) => setTimeout(r, 50));
+    try {
+      await ping();
       return true;
     } catch {
       /* retry */

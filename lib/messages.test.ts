@@ -1,12 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import {
   isExtensionPageSender,
+  isUiConsoleRequest,
   validateExtensionRequest,
   validateSecurityRequest,
   MAX_TRANSLATE_BATCH,
 } from './messages';
 
 describe('messages validators (F32 UNIT)', () => {
+  it('TC-F2-U03 accepts ui.console messages', () => {
+    expect(isUiConsoleRequest({ type: 'ui.console.toggle' })).toBe(true);
+    expect(isUiConsoleRequest({ type: 'ui.console.close' })).toBe(true);
+    expect(isUiConsoleRequest({ type: 'page.status' })).toBe(false);
+  });
+
   it('TC-S-U04 rejects oversized translate batch', () => {
     const texts = Array.from({ length: MAX_TRANSLATE_BATCH + 1 }, () => 'a');
     expect(
@@ -24,11 +31,21 @@ describe('messages validators (F32 UNIT)', () => {
     ).toMatch(/过大/);
   });
 
-  it('TC-S3-U01: extension page sender requires matching runtime id', () => {
+  it('TC-S3-U01: extension page sender allows extension URL even with host tab', () => {
     const extId = 'ext-lingua';
     expect(isExtensionPageSender({ tab: { id: 1 }, id: extId }, extId)).toBe(
       false,
     );
+    expect(
+      isExtensionPageSender(
+        {
+          tab: { id: 1 },
+          id: extId,
+          url: `chrome-extension://${extId}/options.html`,
+        },
+        extId,
+      ),
+    ).toBe(true);
     expect(isExtensionPageSender({ id: 'other' }, extId)).toBe(false);
     expect(isExtensionPageSender({}, extId)).toBe(false);
     expect(isExtensionPageSender({ id: extId }, extId)).toBe(true);

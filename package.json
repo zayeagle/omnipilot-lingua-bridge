@@ -2,7 +2,7 @@
   "name": "omnipilot-lingua-bridge",
   "description": "Chrome & Firefox extension — Chinese↔English only: page + video simultaneous interpretation",
   "private": true,
-  "version": "0.4.30",
+  "version": "0.4.36",
   "type": "module",
   "scripts": {
     "icons": "node scripts/gen-icons.mjs",

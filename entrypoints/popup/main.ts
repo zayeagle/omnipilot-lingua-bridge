@@ -30,6 +30,9 @@ const enToZhEl = document.getElementById('enToZh') as HTMLInputElement;
 const zhToEnEl = document.getElementById('zhToEn') as HTMLInputElement;
 const statusEl = document.getElementById('status') as HTMLParagraphElement;
 const optionsLink = document.getElementById('open-options') as HTMLButtonElement;
+const closeConsoleBtn = document.getElementById(
+  'close-console',
+) as HTMLButtonElement | null;
 const settingsPanel = document.getElementById('settings-panel') as HTMLElement;
 const settingsBack = document.getElementById('settings-back') as HTMLButtonElement;
 const siToggleBtn = document.getElementById('siToggle') as HTMLButtonElement;
@@ -425,6 +428,79 @@ optionsLink.addEventListener('click', () => {
 settingsBack.addEventListener('click', () => {
   closeSettingsPanel();
 });
+
+/** Embedded in page floating host — close notifies parent host. */
+const embeddedInConsole = (() => {
+  try {
+    return window.parent != null && window.parent !== window;
+  } catch {
+    return true;
+  }
+})();
+
+if (closeConsoleBtn) {
+  closeConsoleBtn.hidden = false;
+  closeConsoleBtn.addEventListener('click', () => {
+    if (embeddedInConsole) {
+      try {
+        window.parent.postMessage({ type: 'lb.console.close' }, '*');
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+    window.close();
+  });
+}
+
+/** Drag the floating host by pulling the popup header (when embedded). */
+if (embeddedInConsole) {
+  const head = document.querySelector('.head') as HTMLElement | null;
+  if (head) {
+    head.style.cursor = 'grab';
+    head.title = t('dragHint');
+    let dragging = false;
+    head.addEventListener('pointerdown', (e) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target?.closest('button') ||
+        target?.closest('a') ||
+        target?.closest('input')
+      ) {
+        return;
+      }
+      if (e.button !== 0) return;
+      dragging = true;
+      head.setPointerCapture(e.pointerId);
+      head.style.cursor = 'grabbing';
+      window.parent.postMessage(
+        { type: 'lb.console.dragStart', x: e.screenX, y: e.screenY },
+        '*',
+      );
+      e.preventDefault();
+    });
+    head.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      window.parent.postMessage(
+        { type: 'lb.console.dragMove', x: e.screenX, y: e.screenY },
+        '*',
+      );
+    });
+    const end = (e: PointerEvent) => {
+      if (!dragging) return;
+      dragging = false;
+      head.style.cursor = 'grab';
+      try {
+        head.releasePointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+      window.parent.postMessage({ type: 'lb.console.dragEnd' }, '*');
+    };
+    head.addEventListener('pointerup', end);
+    head.addEventListener('pointercancel', end);
+  }
+}
 
 function bindFoldableSections(): void {
   for (const section of document.querySelectorAll<HTMLElement>('.foldable')) {

@@ -1,32 +1,33 @@
 ---
 branch: main
-last_phase: 5
-timestamp: 2026-07-21T17:51:00+08:00
+last_phase: 3
+timestamp: 2026-07-22T20:53:00+08:00
 complexity: M
-status: completed
+status: in_progress
 platform: cursor
-autopilot: true
+approach: A-page-floating-panel
+autopilot: false
 native_attempted: true
-native_method: md_table
+native_method: none
+prompt_fallback: askquestion_absent
 pending_decision:
   decision_point: checkpoint
   options:
-    - { id: next, command: "/od ps", label: "Commit changes" }
-    - { id: help, command: "/od h", label: "Help" }
+    - { id: next, command: "/od n", label: "Enter Phase 4 QA" }
+    - { id: revise, command: "/od ad", label: "Revise / fix" }
     - { id: cancel, command: "/od x", label: "Exit" }
 ---
 
 ## 会话目标
-方向开关 · popup 内设置 · iframe 气泡 — 已完成并打包。
+浮层控制台：可拖动 + × 关闭 + 点击外部不自动关闭。
 
 ## Key Decisions
-- autopilot Pre-Dev proceed → implemented F1–F3
-- Soft: phase2/4/5 checkpoints auto-advanced after pack
+- Approach A shipped: empty default_popup + Shadow iframe host
 
 ## Deliverables
-- Code: directions + settings panel + allFrames
-- Tests: 105 PASS
-- Pack: `.output/omnipilot-lingua-bridge-0.4.29-chrome.zip`
+- Code: T1–T7
+- Tests: 120 PASS
+- Pack: `.output/omnipilot-lingua-bridge-0.4.31-chrome.zip`
 
 ## 恢复指引
-会话已完成。可选 `/od ps` 提交，或 `/od x` 退出。
+手工 SMK 后 `/od n` → Phase 4；或 `/od qa`。
